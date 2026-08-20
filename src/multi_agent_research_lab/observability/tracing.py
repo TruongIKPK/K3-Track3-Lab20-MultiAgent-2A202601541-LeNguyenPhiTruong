@@ -97,4 +97,3 @@ def trace_span(
                 lf_context.__exit__(None, None, None)
             except Exception as exc:
                 logger.debug("Langfuse span end failed: %s", exc)
-
