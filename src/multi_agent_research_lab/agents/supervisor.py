@@ -1,4 +1,5 @@
 import logging
+
 from multi_agent_research_lab.agents.base import BaseAgent
 from multi_agent_research_lab.core.config import get_settings
 from multi_agent_research_lab.core.schemas import AgentName
@@ -44,8 +45,9 @@ class SupervisorAgent(BaseAgent):
             next_route,
         )
         return state
-    # Chỉ là Supervisor quyết định bằng code chứ chưa dùng LLM để quyết định 
-    # Nếu dùng LLM để quyết định thì sẽ dùng thêm 1 agent nữa là router agent và supervisor sẽ là người điều phối toàn bộ các agent
+
+    # Ghi chú: Supervisor hiện tại quyết định bằng rule-based code.
+    # Nếu dùng LLM thì có thể thêm router agent hoặc LLM call để quyết định.
     def decide_next_route(self, state: ResearchState) -> str:
         """Determine the next step based on state fields and guardrails."""
         # 1. Guardrail: Max iterations exceeded
