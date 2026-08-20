@@ -12,6 +12,7 @@ from multi_agent_research_lab.agents.supervisor import SupervisorAgent
 from multi_agent_research_lab.agents.writer import WriterAgent
 from multi_agent_research_lab.core.schemas import AgentName
 from multi_agent_research_lab.core.state import ResearchState
+from multi_agent_research_lab.observability.tracing import flush_traces, trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -102,5 +103,9 @@ class MultiAgentWorkflow:
             self.build()
 
         assert self._compiled_graph is not None
-        output = self._compiled_graph.invoke(state)
-        return self._to_state(output)
+        with trace_span("multi_agent_workflow", {"query": state.request.query}):
+            output = self._compiled_graph.invoke(state)
+            result = self._to_state(output)
+
+        flush_traces()
+        return result

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from openai import OpenAI
 
 from multi_agent_research_lab.core.config import get_settings
+from multi_agent_research_lab.observability.tracing import trace_span
 
 logger = logging.getLogger(__name__)
 
@@ -46,31 +47,43 @@ class LLMClient:
                 cost_usd=0.0,
             )
 
-        try:
-            response = self._client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=temperature,
-            )
-            content = response.choices[0].message.content or ""
-            usage = response.usage
-            input_tokens = usage.prompt_tokens if usage else None
-            output_tokens = usage.completion_tokens if usage else None
+        with trace_span(
+            "llm_completion",
+            {"model": self.model, "system_prompt": system_prompt[:100], "temperature": temperature},
+        ) as span:
+            try:
+                response = self._client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=temperature,
+                )
+                content = response.choices[0].message.content or ""
+                usage = response.usage
+                input_tokens = usage.prompt_tokens if usage else None
+                output_tokens = usage.completion_tokens if usage else None
 
-            # Approximate cost for gpt-4o-mini ($0.15/1M input, $0.60/1M output)
-            cost: float | None = None
-            if input_tokens is not None and output_tokens is not None:
-                cost = (input_tokens * 0.15 + output_tokens * 0.60) / 1_000_000
+                # Approximate cost for gpt-4o-mini ($0.15/1M input, $0.60/1M output)
+                cost: float | None = None
+                if input_tokens is not None and output_tokens is not None:
+                    cost = (input_tokens * 0.15 + output_tokens * 0.60) / 1_000_000
 
-            return LLMResponse(
-                content=content,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                cost_usd=cost,
-            )
-        except Exception as exc:
-            logger.error("LLM completion failed: %s", exc)
-            raise exc
+                span["attributes"].update(
+                    {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "cost_usd": cost,
+                    }
+                )
+
+                return LLMResponse(
+                    content=content,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    cost_usd=cost,
+                )
+            except Exception as exc:
+                logger.error("LLM completion failed: %s", exc)
+                raise exc
