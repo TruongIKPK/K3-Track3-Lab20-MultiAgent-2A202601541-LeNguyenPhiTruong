@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 from multi_agent_research_lab.agents.analyst import AnalystAgent
 from multi_agent_research_lab.agents.critic import CriticAgent
@@ -41,7 +40,7 @@ class MultiAgentWorkflow:
         self.analyst = analyst or AnalystAgent()
         self.writer = writer or WriterAgent()
         self.critic = critic or CriticAgent()
-        self._compiled_graph: CompiledStateGraph | None = None
+        self._compiled_graph: Any = None
 
     def _to_state(self, raw_state: ResearchState | dict[str, Any]) -> ResearchState:
         if isinstance(raw_state, ResearchState):
@@ -60,7 +59,7 @@ class MultiAgentWorkflow:
             return END
         return next_target
 
-    def build(self) -> CompiledStateGraph:
+    def build(self) -> Any:
         """Create and compile the LangGraph multi-agent graph."""
         builder = StateGraph(ResearchState)
 
@@ -105,4 +104,3 @@ class MultiAgentWorkflow:
         assert self._compiled_graph is not None
         output = self._compiled_graph.invoke(state)
         return self._to_state(output)
-

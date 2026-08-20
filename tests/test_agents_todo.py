@@ -57,4 +57,3 @@ def test_supervisor_enforces_max_iterations() -> None:
     )
     updated = supervisor.run(state)
     assert updated.route_history[-1] == "done"
-
